@@ -1,0 +1,226 @@
+import os
+import tkinter as tk
+from tkinter import simpledialog, messagebox, scrolledtext, font, Menu, filedialog
+from tkinter import ttk
+from docx import Document
+from openpyxl import Workbook
+from PyPDF2 import PdfWriter
+
+class FileManager:
+    def create_text_file(self, filepath, content=""):
+        with open(filepath, 'w') as file:
+            file.write(content)
+        print(f"Text file '{filepath}' created.")
+
+    def create_word_file(self, filepath, content=""):
+        doc = Document()
+        doc.add_paragraph(content)
+        doc.save(filepath)
+        print(f"Word file '{filepath}' created.")
+
+    def create_excel_file(self, filepath, content=""):
+        wb = Workbook()
+        ws = wb.active
+        for row in content.split("\n"):
+            ws.append(row.split(","))
+        wb.save(filepath)
+        print(f"Excel file '{filepath}' created.")
+
+    def create_pdf_file(self, filepath, content=""):
+        pdf = PdfWriter()
+        pdf.addBlankPage(width=72, height=72)
+        with open(filepath, 'wb') as file:
+            pdf.write(file)
+        print(f"PDF file '{filepath}' created.")
+
+    def append_to_file(self, filepath, content):
+        with open(filepath, 'a') as file:
+            file.write(content)
+        print(f"Content appended to file '{filepath}'.")
+
+    def replace_file_content(self, filepath, content):
+        with open(filepath, 'w') as file:
+            file.write(content)
+        print(f"Content of file '{filepath}' replaced.")
+
+    def delete_file(self, filepath):
+        os.remove(filepath)
+        print(f"File '{filepath}' deleted.")
+
+    def search_file(self, filepath):
+        with open(filepath, 'r') as file:
+            content = file.read()
+        print(f"File '{filepath}' found. Content:\n{content}")
+
+def create_file_dialog(fm):
+    def create_file(file_type):
+        filepath = filedialog.asksaveasfilename(defaultextension=f".{file_type.lower()}",
+                                                filetypes=[(f"{file_type} files", f"*.{file_type.lower()}"), ("All files", "*.*")])
+        if filepath:
+            content_window = tk.Toplevel()
+            content_window.title("Enter Content")
+            content_text = scrolledtext.ScrolledText(content_window, wrap=tk.WORD, width=40, height=10, font=('Helvetica', 14))
+            content_text.pack(expand=True, fill='both')
+
+            def apply_formatting(action):
+                current_tags = content_text.tag_names("sel.first")
+                if action == 'Bold':
+                    if 'bold' in current_tags:
+                        content_text.tag_remove('bold', 'sel.first', 'sel.last')
+                    else:
+                        content_text.tag_add('bold', 'sel.first', 'sel.last')
+                elif action == 'Italic':
+                    if 'italic' in current_tags:
+                        content_text.tag_remove('italic', 'sel.first', 'sel.last')
+                    else:
+                        content_text.tag_add('italic', 'sel.first', 'sel.last')
+                elif action == 'Font Size':
+                    size = simpledialog.askinteger("Font Size", "Enter font size:", parent=content_window)
+                    content_text.tag_add(f'size_{size}', 'sel.first', 'sel.last')
+
+            def copy_text():
+                content_text.event_generate("<<Copy>>")
+
+            def paste_text():
+                content_text.event_generate("<<Paste>>")
+
+            menu = Menu(content_window)
+            content_window.config(menu=menu)
+            edit_menu = Menu(menu, tearoff=0)
+            menu.add_cascade(label="Edit", menu=edit_menu)
+            edit_menu.add_command(label="Copy", command=copy_text)
+            edit_menu.add_command(label="Paste", command=paste_text)
+
+            format_menu = Menu(menu, tearoff=0)
+            menu.add_cascade(label="Format", menu=format_menu)
+            format_menu.add_command(label="Bold", command=lambda: apply_formatting('Bold'))
+            format_menu.add_command(label="Italic", command=lambda: apply_formatting('Italic'))
+            format_menu.add_command(label="Font Size", command=lambda: apply_formatting('Font Size'))
+
+            def save_content():
+                content = content_text.get("1.0", tk.END).strip()
+                if file_type == 'Text':
+                    fm.create_text_file(filepath, content)
+                elif file_type == 'Word':
+                    fm.create_word_file(filepath, content)
+                elif file_type == 'Excel':
+                    fm.create_excel_file(filepath, content)
+                elif file_type == 'PDF':
+                    fm.create_pdf_file(filepath, content)
+                messagebox.showinfo("Info", f"{file_type} file '{filepath}' created.")
+                content_window.destroy()
+
+            ttk.Button(content_window, text="Save", command=save_content, style='TButton').pack()
+
+    create_file_window = tk.Toplevel()
+    create_file_window.title("Create File")
+
+    ttk.Button(create_file_window, text="Text File", command=lambda: create_file('Text')).pack(fill=tk.X)
+    ttk.Button(create_file_window, text="Word File", command=lambda: create_file('Word')).pack(fill=tk.X)
+    ttk.Button(create_file_window, text="Excel File", command=lambda: create_file('Excel')).pack(fill=tk.X)
+    ttk.Button(create_file_window, text="PDF File", command=lambda: create_file('PDF')).pack(fill=tk.X)
+
+def update_file_dialog(fm):
+    def update_file(action):
+        filepath = filedialog.askopenfilename(title="Select file")
+        if filepath:
+            content_window = tk.Toplevel()
+            content_window.title("Enter Content")
+            content_text = scrolledtext.ScrolledText(content_window, wrap=tk.WORD, width=40, height=10, font=('Helvetica', 14))
+            content_text.pack(expand=True, fill='both')
+
+            def apply_formatting(action):
+                current_tags = content_text.tag_names("sel.first")
+                if action == 'Bold':
+                    if 'bold' in current_tags:
+                        content_text.tag_remove('bold', 'sel.first', 'sel.last')
+                    else:
+                        content_text.tag_add('bold', 'sel.first', 'sel.last')
+                elif action == 'Italic':
+                    if 'italic' in current_tags:
+                        content_text.tag_remove('italic', 'sel.first', 'sel.last')
+                    else:
+                        content_text.tag_add('italic', 'sel.first', 'sel.last')
+                elif action == 'Font Size':
+                    size = simpledialog.askinteger("Font Size", "Enter font size:", parent=content_window)
+                    content_text.tag_add(f'size_{size}', 'sel.first', 'sel.last')
+
+            def copy_text():
+                content_text.event_generate("<<Copy>>")
+
+            def paste_text():
+                content_text.event_generate("<<Paste>>")
+
+            menu = Menu(content_window)
+            content_window.config(menu=menu)
+            edit_menu = Menu(menu, tearoff=0)
+            menu.add_cascade(label="Edit", menu=edit_menu)
+            edit_menu.add_command(label="Copy", command=copy_text)
+            edit_menu.add_command(label="Paste", command=paste_text)
+
+            format_menu = Menu(menu, tearoff=0)
+            menu.add_cascade(label="Format", menu=format_menu)
+            format_menu.add_command(label="Bold", command=lambda: apply_formatting('Bold'))
+            format_menu.add_command(label="Italic", command=lambda: apply_formatting('Italic'))
+            format_menu.add_command(label="Font Size", command=lambda: apply_formatting('Font Size'))
+
+            def save_content():
+                content = content_text.get("1.0", tk.END).strip()
+                if action == 'Append':
+                    fm.append_to_file(filepath, content)
+                elif action == 'Replace':
+                    fm.replace_file_content(filepath, content)
+                messagebox.showinfo("Info", f"File '{filepath}' updated with action '{action}'.")
+                content_window.destroy()
+
+            ttk.Button(content_window, text="Save", command=save_content, style='TButton').pack()
+
+    update_file_window = tk.Toplevel()
+    update_file_window.title("Update File")
+
+    ttk.Button(update_file_window, text="Append", command=lambda: update_file('Append')).pack(fill=tk.X)
+    ttk.Button(update_file_window, text="Replace", command=lambda: update_file('Replace')).pack(fill=tk.X)
+
+def delete_file_dialog(fm):
+    filepath = filedialog.askopenfilename(title="Select file")
+    if filepath:
+        fm.delete_file(filepath)
+        messagebox.showinfo("Info", f"File '{filepath}' deleted.")
+
+def search_file_dialog(fm):
+    filepath = filedialog.askopenfilename(title="Select file")
+    if filepath:
+        fm.search_file(filepath)
+
+def list_files_dialog(fm):
+    directory = filedialog.askdirectory(title="Select directory")
+    if directory:
+        files = os.listdir(directory)
+        list_window = tk.Toplevel()
+        list_window.title("List of Files")
+        listbox = tk.Listbox(list_window, font=('Helvetica', 14))
+        listbox.pack(fill=tk.BOTH, expand=True)
+        for file in files:
+            listbox.insert(tk.END, file)
+
+def main():
+    fm = FileManager()
+
+    root = tk.Tk()
+    root.title("File Manager")
+
+    style = ttk.Style()
+    style.configure('TButton', font=('Helvetica', 16), padding=10, background='#4CAF50', foreground='black')
+    style.map('TButton', background=[('active', '#45a049')])
+
+    ttk.Button(root, text="Create File", command=lambda: create_file_dialog(fm), style='TButton').pack(fill=tk.X, padx=10, pady=5)
+    ttk.Button(root, text="Update File", command=lambda: update_file_dialog(fm), style='TButton').pack(fill=tk.X, padx=10, pady=5)
+    ttk.Button(root, text="Delete File", command=lambda: delete_file_dialog(fm), style='TButton').pack(fill=tk.X, padx=10, pady=5)
+    ttk.Button(root, text="Search File", command=lambda: search_file_dialog(fm), style='TButton').pack(fill=tk.X, padx=10, pady=5)
+    ttk.Button(root, text="List Files", command=lambda: list_files_dialog(fm), style='TButton').pack(fill=tk.X, padx=10, pady=5)
+    ttk.Button(root, text="Exit", command=root.quit, style='TButton').pack(fill=tk.X, padx=10, pady=5)
+
+    root.mainloop()
+
+if __name__ == "__main__": 
+    main()
